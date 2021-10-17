@@ -1,0 +1,242 @@
+---
+title: "Cleaning 202107-divvy-tripdata log"
+author: "Yasith Udawatte"
+date: "2021-10-11"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Cyclistic trip data 2021 July
+
+#### Load libraries and set current working directory
+```{r}
+library(tidyverse)
+library(readr)
+library(filesstrings)
+library(lubridate)
+
+setwd("D:/Documents/R/Projects/Cyclistic/Cyclistic_Bike_Share/cleaning_data")
+input_file <- "202107-divvy-tripdata.csv"
+cleaned_tripdata_file <- "2021_07_tripdata.csv"
+cleaned_station_file <- "2021_07_stations.csv"
+
+cleaned_trip_data_path <- "D:/Documents/R/Projects/Cyclistic/Cyclistic_Bike_Share/cleaning_data/cleaned_data/cleaned_trip_data"
+cleaned_stations_data_path <- "D:/Documents/R/Projects/Cyclistic/Cyclistic_Bike_Share/cleaning_data/cleaned_data/cleaned_station_data"
+
+valid_start_at <- ymd_hms("2021-07-01 00:00:00")
+valid_end_at <- ymd_hms("2021-07-31 23:59:59")
+```
+
+#### Read csv 
+```{r}
+monthly_trip_data  <- read_csv(input_file, 
+    col_types = cols(ride_id = col_character(), 
+        rideable_type = col_character(), 
+        started_at = col_datetime(), 
+        ended_at = col_datetime(), 
+        start_station_name = col_character(), 
+        start_station_id = col_character(), 
+        end_station_name = col_character(), 
+        end_station_id = col_character(), 
+        start_lat = col_double(), start_lng = col_double(), 
+        end_lat = col_double(), end_lng = col_double(), 
+        member_casual = col_character()))
+
+str(monthly_trip_data)
+glimpse(monthly_trip_data)
+```
+
+#### Rename columns
+```{r}
+monthly_trip_data <- rename(
+  monthly_trip_data, 
+  start_latitude = start_lat, 
+  end_latitude = end_lat, 
+  start_longitude = start_lng, 
+  end_longitude = end_lng,
+  user_type = member_casual)
+
+glimpse(monthly_trip_data)
+```
+
+#### Check columns
+##### 1. ride_id
+```{r}
+monthly_trip_data %>% filter(is.na(ride_id))
+monthly_trip_data %>% filter(duplicated(ride_id))
+```
+##### Observations:
+* No null values.
+* No duplicate values.
+
+##### 2. rideable_type 
+```{r}
+monthly_trip_data %>% filter(is.na(rideable_type))
+monthly_trip_data %>% select(rideable_type) %>% unique()
+```
+##### Observations:
+* No null values, only 3 rideable types available.
+* Values are consistent.
+
+##### 3. strated_at
+```{r}
+monthly_trip_data %>% filter(is.na(started_at))
+monthly_trip_data %>% filter(started_at < valid_start_at | started_at > valid_end_at )
+```
+##### Observations:
+* No null values.
+* Column type is date-time.
+
+##### 4. ended_at
+```{r}
+monthly_trip_data %>% filter(is.na(ended_at))
+```
+##### Observations:
+* No null values.
+* Column type is date-time.
+
+##### 5. Add new column: duration
+```{r}
+monthly_trip_data <- mutate(
+  monthly_trip_data, 
+  duration_in_mins = difftime(ended_at, started_at, units = "mins")
+  )
+
+glimpse(monthly_trip_data)
+
+monthly_trip_data %>%  filter(duration_in_mins <= 0) %>% select(ride_id, started_at, ended_at, duration_in_mins) 
+```
+##### Observations:
+* There are 82 records where started_at value is greater than or equal to the ended_at value.
+* started_at >= ended_at records need to be removed from the data set.
+
+```{r}
+monthly_trip_data_v1 <- monthly_trip_data %>%  filter(duration_in_mins > 0)
+glimpse(monthly_trip_data_v1)
+```
+##### Observations:
+* monthly_trip_date_v1 contains only duration_in_seconds > 0 records.
+
+##### 6. Check user_type
+```{r}
+monthly_trip_data_v1 %>% select(user_type) %>% unique()
+```
+##### Observations:
+* No empty values.
+* Two user types available (member, casual).
+
+##### 7. Check stations data
+```{r}
+start_station_data <- monthly_trip_data_v1 %>% 
+  select(start_station_name, start_station_id, start_latitude, start_longitude) %>% 
+  unique()
+
+glimpse(start_station_data)
+
+start_station_data %>% filter(is.na(start_latitude) | is.na(start_longitude))
+start_station_data %>% select(start_station_name) %>% unique() %>% count()
+start_station_data %>% select(start_station_id) %>% unique() %>% count()
+
+start_station_data <- mutate(start_station_data, start_station_id_length = nchar(start_station_id)) 
+start_station_data %>% select(start_station_id_length) %>% unique() 
+```
+##### Start station data - Observations:
+* Null values exists in start_station_name and start_station_id columns.
+* Each record have both latitude and longitude values.
+* The count of unique start station names is 718. 
+* The count of unique start station ids is 711. 
+* start_station_id naming is not consistent, different lengths and different formats.
+
+```{r}
+end_station_data <- monthly_trip_data_v1 %>% 
+  select(end_station_name, end_station_id, end_latitude, end_longitude) %>% 
+  unique()
+
+glimpse(end_station_data)
+
+end_station_data %>% filter(is.na(end_latitude) | is.na(end_longitude))
+
+end_station_data %>% select(end_station_name) %>% unique() %>% count()
+end_station_data %>% select(end_station_id) %>% unique() %>% count()
+
+end_station_data <- mutate(end_station_data, end_station_id_length = nchar(end_station_id)) 
+end_station_data %>% select(end_station_id_length) %>% unique() 
+
+```
+##### Start station data - Observations:
+* Null values exists in end_station_name and end_station_id columns.
+* A record exists with null values for both end_latitude and end_longitude.
+* The count of unique start station names is 715.
+* The count of unique start station ids is 708.
+* end_station_id naming is not consistent, different lengths and different formats.
+
+##### 8. Arrange station data
+```{r}
+glimpse(start_station_data)
+glimpse(end_station_data)
+
+start_station_data <- start_station_data %>% select(-start_station_id_length)
+end_station_data <- end_station_data %>% select(-end_station_id_length)
+
+start_station_data <- rename(
+  start_station_data,
+  station_name = start_station_name,
+  station_id = start_station_id,
+  latitude = start_latitude,
+  longitude = start_longitude
+)
+
+end_station_data <- rename(
+  end_station_data,
+  station_name = end_station_name,
+  station_id = end_station_id,
+  latitude = end_latitude,
+  longitude = end_longitude
+)
+
+# remove null station entries
+start_station_data <-  start_station_data %>% filter(!is.na(station_name) | !is.na(station_id))
+glimpse(start_station_data)
+
+end_station_data <-  end_station_data %>% filter(!is.na(station_name) | !is.na(station_id))
+glimpse(end_station_data)
+
+stations <- rbind(start_station_data, end_station_data)
+glimpse(stations)
+
+stations <- stations %>% unique()
+glimpse(stations)
+
+stations <- stations %>% arrange(latitude, longitude)
+glimpse(stations)
+```
+
+##### 9. Removing empty latitude and longitude records
+```{r}
+glimpse(monthly_trip_data_v1)
+temp_rec <- monthly_trip_data_v1 %>% filter(is.na(start_latitude) | is.na(start_longitude))
+glimpse(temp_rec)
+
+monthly_trip_data_v1 %>% filter(is.na(end_latitude) | is.na(end_longitude))
+monthly_trip_data_v1 %>% filter(is.na(end_latitude) | is.na(end_longitude)) %>% count()
+
+```
+##### Observations:
+* There are 731 entries with null values for end_latitude and end_longitude fields
+
+
+```{r}
+monthly_trip_data_v2 <- monthly_trip_data_v1 %>% filter(!is.na(end_latitude) & !is.na(end_longitude))
+glimpse(monthly_trip_data_v2)
+```
+
+##### 10. Organize files
+```{r}
+write_csv(stations, cleaned_station_file)
+write_csv(monthly_trip_data_v2, cleaned_tripdata_file )
+file.move(cleaned_station_file, cleaned_stations_data_path, overwrite = TRUE)
+file.move(cleaned_tripdata_file, cleaned_trip_data_path, overwrite = TRUE)
+```

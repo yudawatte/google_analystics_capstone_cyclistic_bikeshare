@@ -1,0 +1,395 @@
+---
+title: "analyzing_data_log"
+author: "Yasith Udawatte"
+date: "2021-10-12"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+#### 1. Load libraries and set current working directory
+```{r cars}
+library(tidyverse)
+library(readr)
+library(dbplyr)
+library(filesstrings)
+library(rlang)
+library(lubridate)
+
+setwd("D:/Documents/R/Projects/Cyclistic/Cyclistic_Bike_Share/analyzing_data")
+input_trip_data <- "D:/Documents/R/Projects/Cyclistic/Cyclistic_Bike_Share/processing_data/processed_data/processed_trip_data/cyclistic_tripdata_final.csv"
+input_stations <- "D:/Documents/R/Projects/Cyclistic/Cyclistic_Bike_Share/processing_data/processed_data/processed_stations_data/station_by_location.csv"
+```
+
+#### 2. Load libraries and set current working directory
+```{r}
+trip_data <- read_csv(input_trip_data)
+glimpse(trip_data)
+
+#trip_data %>% select(ride_id, user_type) %>% duplicate()
+trip_data %>% filter(duplicated(ride_id)) %>% select(ride_id, user_type)
+
+```
+
+#### 3. Ananlyzing data
+
+##### Total member rides
+```{r}
+glimpse(trip_data)
+trips <- trip_data %>% select(user_type) %>% group_by(user_type) %>% count()
+
+trips <- rename(trips, no_of_rides = n)
+glimpse(trips)
+
+write_csv(trips, "rides_by_usertypes.csv")
+
+```
+
+##### Member rides by location
+```{r}
+stations <- read_csv(input_stations)
+glimpse(stations)
+
+user_type_by_location <- trip_data %>% 
+  select(station_name, user_type) %>% 
+  group_by(station_name, user_type) %>% 
+  count()
+
+user_type_by_location <- rename(user_type_by_location, no_of_rides = n)
+
+View(user_type_by_location)
+
+user_type_by_location <- left_join(user_type_by_location, stations, by = "station_name")
+
+View(user_type_by_location)
+
+user_type_by_location <- user_type_by_location %>% 
+  select(station_id, station_name, latitude, longitude, user_type, no_of_rides)
+
+write_csv(user_type_by_location, "user_rides_by_location.csv")
+
+# count member rides by location
+member_rides_by_location <- trip_data %>% 
+  filter(user_type == "member") %>% 
+  select(station_name) %>% 
+  group_by(station_name) %>% 
+  count()
+
+glimpse(member_rides_by_location)
+member_rides_by_location <- rename(member_rides_by_location, no_of_member_rides = n)
+glimpse(member_rides_by_location)
+
+stations <- left_join(stations, member_rides_by_location, by = "station_name")
+glimpse(stations)
+
+remove(member_rides_by_location)
+
+# count casual rides by location
+casual_rides_by_location <- trip_data %>% 
+  filter(user_type == "casual") %>% 
+  select(station_name) %>% 
+  group_by(station_name) %>% 
+  count()
+
+glimpse(casual_rides_by_location)
+casual_rides_by_location <- rename(casual_rides_by_location, no_of_casual_rides = n)
+glimpse(casual_rides_by_location)
+
+stations <- left_join(stations, casual_rides_by_location, by = "station_name")
+glimpse(stations)
+#View(stations)
+
+stations %>% filter(is.na(no_of_member_rides) & is.na(no_of_casual_rides)) 
+remove(casual_rides_by_location)
+```
+
+```{r}
+trip_data %>% filter(station_id == "332")
+trip_data %>% filter(station_id == "365")
+trip_data %>% filter(station_id == "358")
+trip_data %>% filter(station_id == "357")
+trip_data %>% filter(station_id == "362")
+trip_data %>% filter(station_id == "351")
+trip_data %>% filter(station_id == "20258")
+trip_data %>% filter(station_id == "20246")
+trip_data %>% filter(station_id == "319")
+trip_data %>% filter(station_id == "368")
+
+stations <- stations %>% filter(!is.na(no_of_member_rides) | !is.na(no_of_casual_rides)) %>% arrange(latitude, longitude)
+glimpse(stations)
+
+write_csv(stations, "rides_by_stations.csv")
+```
+
+
+##### Rides by month
+```{r}
+# Format 1
+glimpse(trip_data)
+
+rides_by_month <- trip_data %>% 
+  select(started_month, user_type) %>% 
+  group_by(started_month, user_type) %>% 
+  count()
+
+rides_by_month <- rides_by_month %>% rename(no_of_rides = n)
+
+rides_by_month <- mutate(rides_by_month,
+                         custom_order_no = switch(
+                           started_month,
+                           "September" = 1,
+                           "October" = 2,
+                           "November" = 3,
+                           "December" = 4,
+                           "January" = 5,
+                           "February" = 6,
+                           "March" = 7,
+                           "April" = 8,
+                           "May" = 9,
+                           "June" = 10,
+                           "July" = 11,
+                           "August" = 12
+                         )
+                         )
+
+rides_by_month <- rides_by_month %>% arrange(custom_order_no)  
+
+glimpse(rides_by_month)
+
+write_csv(rides_by_month, "rides_by_month.csv")
+
+# Format 2
+
+member_rides_by_month <- trip_data %>% 
+  filter(user_type == "member") %>% 
+  select(started_month) %>% 
+  group_by(started_month) %>% 
+  count()
+
+member_rides_by_month <- rename(member_rides_by_month, no_of_member_rides = n)
+
+glimpse(member_rides_by_month)
+
+casual_rides_by_month <- trip_data %>% 
+  filter(user_type == "casual") %>% 
+  select(started_month) %>% 
+  group_by(started_month) %>% 
+  count()
+
+casual_rides_by_month <- rename(casual_rides_by_month, no_of_casual_rides = n)
+
+glimpse(casual_rides_by_month)
+
+rides_by_month2 <- left_join(member_rides_by_month, casual_rides_by_month, by = "started_month")
+glimpse(rides_by_month2)
+
+write_csv(rides_by_month2, "rides_by_month2.csv")
+
+remove(member_rides_by_month)
+remove(casual_rides_by_month)
+```
+
+##### Rides by week day
+```{r}
+glimpse(trip_data)
+
+member_rides_by_day <- trip_data %>% 
+  filter(user_type == "member") %>% 
+  select(started_week_day) %>% 
+  group_by(started_week_day) %>% 
+  count()
+
+member_rides_by_day <- rename(member_rides_by_day, no_of_member_rides = n)
+
+glimpse(member_rides_by_day)
+
+casual_rides_by_day <- trip_data %>% 
+  filter(user_type == "casual") %>% 
+  select(started_week_day) %>% 
+  group_by(started_week_day) %>% 
+  count()
+
+casual_rides_by_day <- rename(casual_rides_by_day, no_of_casual_rides = n)
+
+glimpse(casual_rides_by_day)
+
+rides_by_day <- left_join(member_rides_by_day, casual_rides_by_day, by = "started_week_day")
+glimpse(rides_by_day)
+
+rides_by_day <- rename(rides_by_day, week_day = started_week_day)
+
+write_csv(rides_by_day, "rides_by_day.csv")
+
+remove(member_rides_by_day)
+remove(casual_rides_by_day)
+```
+
+##### Rides by rideable type
+```{r}
+glimpse(trip_data)
+
+member_rides_by_rideable_type <- trip_data %>% 
+  filter(user_type == "member") %>% 
+  select(rideable_type) %>% 
+  group_by(rideable_type) %>% 
+  count()
+
+member_rides_by_rideable_type <- rename(member_rides_by_rideable_type, no_of_member_rides = n)
+
+glimpse(member_rides_by_rideable_type)
+
+casual_rides_by_rideable_type <- trip_data %>% 
+  filter(user_type == "casual") %>% 
+  select(rideable_type) %>% 
+  group_by(rideable_type) %>% 
+  count()
+
+casual_rides_by_rideable_type <- rename(casual_rides_by_rideable_type, no_of_casual_rides = n)
+
+glimpse(casual_rides_by_rideable_type)
+
+rides_by_rideable_type <- left_join(member_rides_by_rideable_type, casual_rides_by_rideable_type, by = "rideable_type")
+glimpse(rides_by_rideable_type)
+
+write_csv(rides_by_rideable_type, "rides_by_rideable_type.csv")
+
+remove(member_rides_by_rideable_type)
+remove(casual_rides_by_rideable_type)
+
+# format 2
+rides_by_rideable_type2 <- trip_data %>% 
+  select(rideable_type, user_type) %>% 
+  group_by(rideable_type, user_type) %>% 
+  count()
+
+rides_by_rideable_type2 <- rename(rides_by_rideable_type2, no_of_rides = n)
+
+rides_by_rideable_type2 <- rides_by_rideable_type2 %>% arrange(rideable_type, desc(user_type))
+
+glimpse(rides_by_rideable_type2)
+write_csv(rides_by_rideable_type2, "rides_by_rideable_type2.csv")
+```
+
+##### Rides by day hour
+```{r}
+glimpse(trip_data)
+
+member_rides_by_hour <- trip_data %>% 
+  filter(user_type == "member") %>% 
+  select(started_hour) %>% 
+  group_by(started_hour) %>% 
+  count()
+
+member_rides_by_hour <- rename(member_rides_by_hour, no_of_member_rides = n)
+
+glimpse(member_rides_by_hour)
+
+casual_rides_by_hour <- trip_data %>% 
+  filter(user_type == "casual") %>% 
+  select(started_hour) %>% 
+  group_by(started_hour) %>% 
+  count()
+
+casual_rides_by_hour <- rename(casual_rides_by_hour, no_of_casual_rides = n)
+
+glimpse(casual_rides_by_hour)
+
+rides_by_hour <- left_join(member_rides_by_hour, casual_rides_by_hour, by = "started_hour")
+
+rides_by_hour <- rides_by_hour %>% arrange(started_hour)
+
+rides_by_hour <- mutate(rides_by_hour, started_hour = as_string(started_hour))
+glimpse(rides_by_hour)
+
+
+
+write_csv(rides_by_hour, "rides_by_hour.csv")
+
+remove(member_rides_by_hour)
+remove(casual_rides_by_hour)
+
+# format 2
+rides_by_hour2 <- trip_data %>% 
+  select(started_hour, user_type) %>% 
+  group_by(started_hour, user_type) %>% 
+  count()
+
+rides_by_hour2 <- rename(rides_by_hour2, no_of_casual_rides = n)
+
+rides_by_hour2 <- mutate(rides_by_hour2, started_hour = as_string(started_hour))
+glimpse(rides_by_hour2)
+
+write_csv(rides_by_hour2, "rides_by_hour2.csv")
+
+```
+
+
+##### Montly Rides by ridable types
+```{r}
+rideable_type_by_month1 <- trip_data %>% 
+  filter(rideable_type == "classic_bike") %>% 
+  group_by(started_month) %>% 
+  count()
+
+rideable_type_by_month1 <- rename(rideable_type_by_month1, classic_bike_count = n)
+
+
+rideable_type_by_month2 <- trip_data %>% 
+  filter(rideable_type == "docked_bike") %>% 
+  group_by(started_month) %>% 
+  count()
+
+glimpse(rideable_type_by_month2)
+
+rideable_type_by_month2 <- rename(rideable_type_by_month2, docked_bike_count = n)
+
+rideable_type_by_month <- left_join(rideable_type_by_month2, rideable_type_by_month1, by = "started_month")
+glimpse(rideable_type_by_month)
+
+rideable_type_by_month3 <- trip_data %>% 
+  filter(rideable_type == "electric_bike") %>% 
+  group_by(started_month) %>% 
+  count()
+
+rideable_type_by_month3 <- rename(rideable_type_by_month3, electric_bike_count = n)
+
+rideable_type_by_month <- left_join(rideable_type_by_month, rideable_type_by_month3, by = "started_month")
+
+glimpse(rideable_type_by_month)
+
+write_csv(rideable_type_by_month, "rideable_type_by_month.csv")
+
+# format 2
+rideable_type_by_month <- trip_data %>% 
+  select(started_date, rideable_type) %>% 
+  group_by(started_date, rideable_type) %>% 
+  count()
+
+rideable_type_by_month <- rename(rideable_type_by_month, no_of_rides = n)
+
+glimpse(rideable_type_by_month)
+
+
+write_csv(rideable_type_by_month, "rideable_type_by_month2.csv")
+
+```
+
+##### Ride duration by user type
+```{r}
+glimpse(trip_data)
+
+ride_duration_by_user_type <- trip_data %>% 
+  select(user_type, duration_in_mins) %>% 
+  group_by(user_type, duration_in_mins) 
+
+ride_duration_by_user_type <- trip_data %>%
+  group_by(user_type) %>%
+  summarise(average_ride_duration = mean(duration_in_mins))
+  
+glimpse(ride_duration_by_user_type)
+#View(ride_duration_by_user_type)
+
+write_csv(ride_duration_by_user_type, "ride_duration_by_user_type.csv")
+```

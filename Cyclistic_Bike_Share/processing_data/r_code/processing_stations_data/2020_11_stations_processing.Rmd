@@ -1,0 +1,134 @@
+---
+title: "Processing 2020_11_stations log"
+author: "Yasith Udawatte"
+date: "2021-10-11"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Cyclistic station data 2020 November
+
+#### 1. Load libraries and set current working directory
+```{r cars}
+library(tidyverse)
+library(readr)
+library(dbplyr)
+library(filesstrings)
+
+setwd("D:/Documents/R/Projects/Cyclistic/Cyclistic_Bike_Share/processing_data")
+input_file <- "D:/Documents/R/Projects/Cyclistic/Cyclistic_Bike_Share/cleaning_data/cleaned_data/cleaned_station_data/2020_11_stations.csv"
+processed_stations_file <- "2020_11_stations_processed.csv"
+processed_data_path <- "D:/Documents/R/Projects/Cyclistic/Cyclistic_Bike_Share/processing_data/processed_data/processed_stations_data"
+```
+
+#### 2. Load libraries and set current working directory
+```{r}
+stations_data <- read_csv(input_file)
+glimpse(stations_data)
+```
+#### 3. Check number of station records
+```{r}
+id_name <- stations_data  %>%  select(station_id, station_name) %>% arrange(station_id) %>% unique()
+
+glimpse(id_name)
+
+id_name %>% count(station_id)
+
+id_name %>% count(station_name)
+```
+#### Observations:
+* 666 unique station_id, station_name records
+* 663 unique station ids
+* 666 unique station names
+
+```{r}
+ids <- id_name %>% select(station_id) %>% count(station_id)
+glimpse(ids)
+
+filter(ids, n > 1)
+filter(id_name, station_id == "625")
+
+stations_data %>% filter(station_id == "625")
+
+stations_data %>% filter(station_name == "Dodge Ave & Main St")
+stations_data %>% filter(station_name == "Chicago Ave & Dempster St")
+
+stations_data %>% filter(is.na(station_id))
+stations_data %>% filter(station_name == "S Michigan Ave & E 118th St")
+stations_data %>% filter(station_name == "W Armitage Ave & N Sheffield Ave")
+stations_data %>% filter(station_name == "W Oakdale Ave & N Broadway")
+```
+#### Observations:
+* Stations "Chicago Ave & Dempster St" and "Dodge Ave & Main St" given the same station_id 625. (This same issue appear in 2020_12_stations data set as well)
+* Station name "Dodge Ave & Main St" appear only once with station_id 625.
+* Station name "Chicago Ave & Dempster St" appear many times with station_id 625. 
+* For stations "S Michigan Ave & E 118th St", "W Armitage Ave & N Sheffield Ave", and "W Oakdale Ave & N Broadway" station_id was not assinged.
+
+#### 4. Correct station_name value:
+```{r}
+stations_data %>% filter(station_id == "625")
+stations_data <- stations_data %>% mutate(station_id = replace(station_id, station_name == "Dodge Ave & Main St", "E011"))
+stations_data %>% filter(station_id == "E011")
+stations_data %>% filter(station_id == "625")
+
+stations_data %>% filter(station_name == "S Michigan Ave & E 118th St")
+stations_data <- stations_data %>% mutate(station_id = replace(station_id, station_name == "S Michigan Ave & E 118th St", "TEMPORY_STATION_ID_0001"))
+stations_data %>% filter(station_name == "S Michigan Ave & E 118th St") 
+
+stations_data %>% filter(station_name == "W Armitage Ave & N Sheffield Ave")
+stations_data <- stations_data %>% mutate(station_id = replace(station_id, station_name == "W Armitage Ave & N Sheffield Ave", "TEMPORY_STATION_ID_0002"))
+stations_data %>% filter(station_name == "W Armitage Ave & N Sheffield Ave")
+
+stations_data %>% filter(station_name == "W Oakdale Ave & N Broadway")
+stations_data <- stations_data %>% mutate(station_id = replace(station_id, station_name == "W Oakdale Ave & N Broadway", "TEMPORY_STATION_ID_0003"))
+stations_data %>% filter(station_name == "W Oakdale Ave & N Broadway")
+
+
+id_name <- stations_data  %>%  select(station_id, station_name) %>% arrange(station_id) %>% unique()
+glimpse(id_name)
+id_name %>% count(station_id)
+id_name %>% count(station_name)
+```
+#### Observations:
+* station_id for "Dodge Ave & Main St" assigned as "E011" (recorded from 2021_12_stations data set)
+* For stations "S Michigan Ave & E 118th St", "W Armitage Ave & N Sheffield Ave", and "W Oakdale Ave & N Broadway" a temporary station_id was assigned.
+* 666 unique records
+* unique station_id count equals to the unique_station_name count (666)
+
+#### 5. Check for station_id consistency
+```{r}
+id_name <- id_name %>% mutate(id_length = nchar(station_id))
+glimpse(id_name)
+id_name %>% select(id_length) %>% unique()
+```
+#### Observations:
+* There are 5 different station_id lengths
+
+```{r}
+id_name %>% filter(id_length == 3)
+id_name %>% filter(id_length == 2)
+id_name %>% filter(id_length == 1)
+id_name %>% filter(id_length == 4)
+id_name %>% filter(id_length == 23)
+```
+#### Observations:
+* 3 temporary station ids need to be corrected from other data sets.
+
+#### 6. Arrange dataset:
+```{r}
+glimpse(stations_data)
+stations_data2 <- stations_data
+stations_data2 <- stations_data2 %>% unique()
+stations_data2 <- stations_data2 %>% arrange(latitude, longitude)
+glimpse(stations_data2)
+```
+
+##### 7. Organize files
+```{r}
+write_csv(stations_data2, processed_stations_file)
+file.move(processed_stations_file, processed_data_path , overwrite = TRUE)
+```
+

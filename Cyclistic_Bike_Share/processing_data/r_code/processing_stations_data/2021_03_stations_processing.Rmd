@@ -1,0 +1,142 @@
+---
+title: "Processing 2021_03_stations log"
+author: "Yasith Udawatte"
+date: "2021-10-11"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Cyclistic station data 2021 March
+
+#### 1. Load libraries and set current working directory
+```{r cars}
+library(tidyverse)
+library(readr)
+library(dbplyr)
+library(filesstrings)
+
+setwd("D:/Documents/R/Projects/Cyclistic/Cyclistic_Bike_Share/processing_data")
+input_file <- "D:/Documents/R/Projects/Cyclistic/Cyclistic_Bike_Share/cleaning_data/cleaned_data/cleaned_station_data/2021_03_stations.csv"
+processed_stations_file <- "2021_03_stations_processed.csv"
+processed_data_path <- "D:/Documents/R/Projects/Cyclistic/Cyclistic_Bike_Share/processing_data/processed_data/processed_stations_data"
+```
+
+#### 2. Load libraries and set current working directory
+```{r}
+stations_data <- read_csv(input_file)
+glimpse(stations_data)
+```
+
+#### 3. Check number of station records
+```{r}
+id_name <- stations_data  %>%  select(station_id, station_name) %>% arrange(station_id) %>% unique()
+
+glimpse(id_name)
+
+id_name %>% count(station_id)
+
+id_name %>% count(station_name)
+```
+#### Observations:
+* 677 unique station_id, station_name records
+* 677 unique station ids
+* 677 unique station names
+
+```{r}
+ids <- id_name %>% select(station_id) %>% count(station_id)
+glimpse(ids)
+
+filter(ids, n > 1)
+```
+#### 4. Check for station_id consistency
+```{r}
+id_name <- id_name %>% mutate(id_length = nchar(station_id))
+glimpse(id_name)
+id_name %>% select(id_length) %>% unique()
+```
+#### Observations:
+* There are 8 different station_id lengths
+
+```{r}
+id_name %>% filter(id_length == 5)
+id_name %>% filter(id_length == 4)
+id_name %>% filter(id_length == 7)
+id_name %>% filter(id_length == 3)
+id_name %>% filter(id_length == 35)
+id_name %>% filter(id_length == 12)
+id_name %>% filter(id_length == 10)
+id_name %>% filter(id_length == 6)
+```
+#### Observations:
+* Following station_id have in-consistence naming
+    + 20.0
+    + 20246.0
+    + 20247.0	
+    + 20248.0		
+    + 20251.0	
+    + 20252.0		
+    + 20253.0	
+    + 20254.0	
+    + 20256.0	
+    + 20257.0		
+    + 20258.0
+    + Hubbard Bike-checking (LBS-WH-TEST)
+    
+#### Correct station_id values:
+```{r}
+remove(stations_data2)
+stations_data2 <- stations_data
+stations_data2 <- stations_data2 %>% mutate(station_id = replace(station_id, station_id == "20.0", "20"))
+stations_data2 <- stations_data2 %>% mutate(station_id = replace(station_id, station_id == "20246.0", "20246"))
+stations_data2 <- stations_data2 %>% mutate(station_id = replace(station_id, station_id == "20247.0", "20247"))
+stations_data2 <- stations_data2 %>% mutate(station_id = replace(station_id, station_id == "20248.0", "20248"))
+stations_data2 <- stations_data2 %>% mutate(station_id = replace(station_id, station_id == "20251.0", "20251"))
+stations_data2 <- stations_data2 %>% mutate(station_id = replace(station_id, station_id == "20252.0", "20252"))
+stations_data2 <- stations_data2 %>% mutate(station_id = replace(station_id, station_id == "20253.0", "20253"))
+stations_data2 <- stations_data2 %>% mutate(station_id = replace(station_id, station_id == "20254.0", "20254"))
+stations_data2 <- stations_data2 %>% mutate(station_id = replace(station_id, station_id == "20256.0", "20256"))
+stations_data2 <- stations_data2 %>% mutate(station_id = replace(station_id, station_id == "20257.0", "20257"))
+stations_data2 <- stations_data2 %>% mutate(station_id = replace(station_id, station_id == "20258.0", "20258"))
+stations_data2 <- stations_data2 %>% mutate(station_id = replace(station_id, station_id == "Hubbard Bike-checking (LBS-WH-TEST)", "LBS-WH-TEST"))
+```
+
+#### re-check station_id lengths
+```{r}
+remove(id_name2)
+id_name2 <- stations_data2  %>%  select(station_id, station_name) %>% arrange(station_id) %>% unique()
+id_name2 <- id_name2 %>% mutate(id_length = nchar(station_id))
+glimpse(id_name2)
+id_name2 %>% select(id_length) %>% unique()
+```
+#### Observations:
+* Number of different station_id lengths reduced from 9 to 8
+
+```{r}
+id_name2 %>% filter(id_length == 5)
+id_name2 %>% filter(id_length == 2)
+id_name2 %>% filter(id_length == 3)
+id_name2 %>% filter(id_length == 4)
+id_name2 %>% filter(id_length == 12)
+id_name2 %>% filter(id_length == 10)
+id_name2 %>% filter(id_length == 11)
+id_name2 %>% filter(id_length == 6)
+```
+#### Observations:
+* Station_ids are more consistent.
+
+#### 6. Arrange dataset:
+```{r}
+glimpse(stations_data2)
+stations_data2 <- stations_data2 %>% unique()
+stations_data2 <- stations_data2 %>% arrange(latitude, longitude)
+glimpse(stations_data2)
+```
+
+##### 7. Organize files
+```{r}
+write_csv(stations_data2, processed_stations_file)
+file.move(processed_stations_file, processed_data_path , overwrite = TRUE)
+```

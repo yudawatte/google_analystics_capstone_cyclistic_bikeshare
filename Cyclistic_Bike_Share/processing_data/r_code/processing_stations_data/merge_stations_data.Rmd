@@ -1,0 +1,553 @@
+---
+title: "Merge stations data log"
+author: "Yasith Udawatte"
+date: "2021-10-11"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Cyclistic station data
+
+#### 1. Load libraries and set current working directory
+```{r cars}
+library(tidyverse)
+library(readr)
+library(dbplyr)
+library(filesstrings)
+
+setwd("D:/Documents/R/Projects/Cyclistic/Cyclistic_Bike_Share/processing_data/processed_data/processed_stations_data")
+processed_stations_file <- "stations_processed_final.csv"
+processed_data_path <- "D:/Documents/R/Projects/Cyclistic/Cyclistic_Bike_Share/processing_data/processed_data/processed_stations_data"
+```
+
+#### 2. Merge 2021 August to 2020 September station data
+```{r}
+# 2021 August
+input_file <- read_csv("2021_08_stations_processed.csv")
+glimpse(input_file)
+stations_data <- input_file
+
+# 2021 July
+input_file <- read_csv("2021_07_stations_processed.csv")
+glimpse(input_file)
+stations_data <- rbind(stations_data, input_file)
+
+# 2021 June
+input_file <- read_csv("2021_06_stations_processed.csv")
+glimpse(input_file)
+stations_data <- rbind(stations_data, input_file)
+
+# 2021 May
+input_file <- read_csv("2021_05_stations_processed.csv")
+glimpse(input_file)
+stations_data <- rbind(stations_data, input_file)
+
+# 2021 April
+input_file <- read_csv("2021_04_stations_processed.csv")
+glimpse(input_file)
+stations_data <- rbind(stations_data, input_file)
+
+# 2021 March
+input_file <- read_csv("2021_03_stations_processed.csv")
+glimpse(input_file)
+stations_data <- rbind(stations_data, input_file)
+
+# 2021 February
+input_file <- read_csv("2021_02_stations_processed.csv")
+glimpse(input_file)
+stations_data <- rbind(stations_data, input_file)
+
+# 2021 January
+input_file <- read_csv("2021_01_stations_processed.csv")
+glimpse(input_file)
+stations_data <- rbind(stations_data, input_file)
+
+# 2020 December
+input_file <- read_csv("2020_12_stations_processed.csv")
+glimpse(input_file)
+stations_data <- rbind(stations_data, input_file)
+
+# 2020 November
+input_file <- read_csv("2020_11_stations_processed.csv")
+glimpse(input_file)
+stations_data <- rbind(stations_data, input_file)
+
+# 2020 October
+input_file <- read_csv("2020_10_stations_processed.csv")
+glimpse(input_file)
+stations_data <- rbind(stations_data, input_file)
+
+# 2020 September
+input_file <- read_csv("2020_09_stations_processed.csv")
+glimpse(input_file)
+stations_data <- rbind(stations_data, input_file)
+
+glimpse(stations_data)
+stations_data <- stations_data %>% distinct()
+glimpse(stations_data)
+```
+#### 3. Check number of station records
+```{r}
+id_name <- stations_data  %>%  select(station_id, station_name) %>% arrange(station_id) %>% distinct()
+
+glimpse(id_name)
+
+id_name %>% count(station_id)
+
+id_name %>% count(station_name)
+```
+#### Observations:
+* 1,351 unique station_id, station_name records
+* 1,301 unique station ids
+* 754 unique station names
+
+```{r}
+ids <- id_name %>% select(station_id) %>% count(station_id)
+glimpse(ids)
+
+filter(ids, n > 1)
+```
+#### Observations:
+* 47 station ids appear more than once
+
+#### 4. Correct station_name value:
+```{r}
+stations_data %>% filter(station_id == "13074")
+stations_data <- stations_data %>% mutate(station_name = replace(station_name, station_name == "Broadway & Wilson - Truman College Vaccination Site", "Broadway & Wilson Ave"))
+stations_data %>% filter(station_id == "13074")
+
+stations_data %>% filter(station_id == "13099")
+stations_data <- stations_data %>% mutate(station_name = replace(station_name, station_name == "Halsted St & 18th St (Temp)", "Halsted St & 18th St"))
+stations_data %>% filter(station_id == "13099")
+
+stations_data %>% filter(station_id == "13300")
+stations_data <- stations_data %>% mutate(station_name = replace(station_name, station_name == "DuSable Lake Shore Dr & Monroe St", "Lake Shore Dr & Monroe St"))
+stations_data %>% filter(station_id == "13300")
+
+stations_data %>% filter(station_id == "20")
+stations_data %>% filter(station_name == "Damen Ave & Wabansia Ave")
+stations_data %>% filter(station_name == "Sheffield Ave & Kingsbury St")
+stations_data <- stations_data %>% mutate(station_id = replace(station_id, station_name == "Sheffield Ave & Kingsbury St", "13154"))
+stations_data %>% filter(station_name == "Damen Ave & Wabansia Ave")
+stations_data %>% filter(station_name == "Sheffield Ave & Kingsbury St")
+
+stations_data %>% filter(station_id == "20248")
+stations_data <- stations_data %>% mutate(station_name = replace(station_name, station_name == "N Hampden Ct & W Diversey Ave", "Hampden Ct & Diversey Ave"))
+stations_data %>% filter(station_id == "20248")
+
+stations_data %>% filter(station_id == "26")
+stations_data %>% filter(station_name == "New St & Illinois St")
+stations_data %>% filter(station_name == "McClurg Ct & Illinois St")
+stations_data <- stations_data %>% mutate(station_id = replace(station_id, station_name == "New St & Illinois St", "TA1306000013"))
+stations_data <- stations_data %>% mutate(station_id = replace(station_id, station_name == "McClurg Ct & Illinois St", "26"))
+stations_data %>% filter(station_name == "New St & Illinois St")
+stations_data %>% filter(station_name == "McClurg Ct & Illinois St")
+
+stations_data %>% filter(station_id == "310")
+stations_data %>% filter(station_name == "North Ave & New England Ave")
+stations_data %>% filter(station_name == "Damen Ave & Charleston St")
+stations_data <- stations_data %>% mutate(station_id = replace(station_id, station_name == "Damen Ave & Charleston St", "13288"))
+stations_data %>% filter(station_name == "North Ave & New England Ave")
+stations_data %>% filter(station_name == "Damen Ave & Charleston St")
+
+stations_data %>% filter(station_id == "312")
+stations_data %>% filter(station_name == "Lockwood Ave & Wrightwood Ave")
+stations_data %>% filter(station_name == "Clarendon Ave & Gordon Ter")
+stations_data <- stations_data %>% mutate(station_id = replace(station_id, station_name == "Clarendon Ave & Gordon Ter", "13379"))
+stations_data %>% filter(station_name == "Lockwood Ave & Wrightwood Ave")
+stations_data %>% filter(station_name == "Clarendon Ave & Gordon Ter")
+
+stations_data %>% filter(station_id == "313")
+stations_data %>% filter(station_name == "Long Ave & Belden Ave")
+stations_data %>% filter(station_name == "Lakeview Ave & Fullerton Pkwy")
+stations_data <- stations_data %>% mutate(station_id = replace(station_id, station_name == "Lakeview Ave & Fullerton Pkwy", "TA1309000019"))
+stations_data %>% filter(station_name == "Long Ave & Belden Ave")
+stations_data %>% filter(station_name == "Lakeview Ave & Fullerton Pkwy")
+
+stations_data %>% filter(station_id == "316")
+stations_data %>% filter(station_name == "Lamon Ave & Belmont Ave")
+stations_data %>% filter(station_name == "Damen Ave & Sunnyside Ave")
+stations_data <- stations_data %>% mutate(station_id = replace(station_id, station_name == "Damen Ave & Sunnyside Ave", "TA1309000012"))
+stations_data %>% filter(station_name == "Lamon Ave & Belmont Ave")
+stations_data %>% filter(station_name == "Damen Ave & Sunnyside Ave")
+
+stations_data %>% filter(station_id == "317")
+stations_data %>% filter(station_name == "Long Ave & Belmont Ave")
+stations_data %>% filter(station_name == "Wood St & Taylor St (Temp)")
+stations_data %>% filter(station_name == "Wood St & Taylor St")
+stations_data <- stations_data %>% mutate(station_id = replace(station_id, station_name == "Wood St & Taylor St (Temp)", "13285"))
+stations_data <- stations_data %>% mutate(station_id = replace(station_id, station_name == "Wood St & Taylor St", "13285"))
+stations_data <- stations_data %>% mutate(station_name = replace(station_name, station_name == "Wood St & Taylor St (Temp)", "Wood St & Taylor St"))
+stations_data %>% filter(station_name == "Long Ave & Belmont Ave")
+stations_data %>% filter(station_name == "Wood St & Taylor St (Temp)")
+stations_data %>% filter(station_name == "Wood St & Taylor St")
+
+stations_data %>% filter(station_id == "319")
+stations_data %>% filter(station_name == "Roscoe & Harlem")
+stations_data %>% filter(station_name == "Greenview Ave & Diversey Pkwy")
+stations_data <- stations_data %>% mutate(station_id = replace(station_id, station_name == "Greenview Ave & Diversey Pkwy", "13294"))
+stations_data %>% filter(station_name == "Roscoe & Harlem")
+stations_data %>% filter(station_name == "Greenview Ave & Diversey Pkwy")
+
+stations_data %>% filter(station_id == "321")
+stations_data %>% filter(station_name == "Kostner Ave & Wrightwood Ave")
+stations_data %>% filter(station_name == "Wabash Ave & 9th St")
+stations_data <- stations_data %>% mutate(station_id = replace(station_id, station_name == "Wabash Ave & 9th St", "TA1309000010"))
+stations_data %>% filter(station_name == "Kostner Ave & Wrightwood Ave")
+stations_data %>% filter(station_name == "Wabash Ave & 9th St")
+
+stations_data %>% filter(station_id == "322")
+stations_data %>% filter(station_name == "Cicero Ave & Grace St")
+stations_data %>% filter(station_name == "Kimbark Ave & 53rd St")
+stations_data <- stations_data %>% mutate(station_id = replace(station_id, station_name == "Kimbark Ave & 53rd St", "TA1309000037"))
+stations_data %>% filter(station_name == "Cicero Ave & Grace St")
+stations_data %>% filter(station_name == "Kimbark Ave & 53rd St")
+
+stations_data %>% filter(station_id == "324")
+stations_data %>% filter(station_name == "Meade Ave & Addison St")
+stations_data %>% filter(station_name == "Stockton Dr & Wrightwood Ave")
+stations_data <- stations_data %>% mutate(station_id = replace(station_id, station_name == "Stockton Dr & Wrightwood Ave", "13276"))
+stations_data %>% filter(station_name == "Meade Ave & Addison St")
+stations_data %>% filter(station_name == "Stockton Dr & Wrightwood Ave")
+
+stations_data %>% filter(station_id == "325")
+stations_data %>% filter(station_name == "Harlem Ave & Grace St")
+stations_data %>% filter(station_name == "Clark St & Winnemac Ave")
+stations_data <- stations_data %>% mutate(station_id = replace(station_id, station_name == "Clark St & Winnemac Ave", "TA1309000035"))
+stations_data %>% filter(station_name == "Harlem Ave & Grace St")
+stations_data %>% filter(station_name == "Clark St & Winnemac Ave")
+
+stations_data %>% filter(station_id == "327")
+stations_data %>% filter(station_name == "Plainfield & Irving Park")
+stations_data %>% filter(station_name == "Sheffield Ave & Webster Ave")
+stations_data <- stations_data %>% mutate(station_id = replace(station_id, station_name == "Sheffield Ave & Webster Ave", "TA1309000033"))
+stations_data %>% filter(station_name == "Plainfield & Irving Park")
+stations_data %>% filter(station_name == "Sheffield Ave & Webster Ave")
+
+stations_data %>% filter(station_id == "329")
+stations_data %>% filter(station_name == "Central Park Ave & Douglas Blvd")
+stations_data %>% filter(station_name == "Lake Shore Dr & Diversey Pkwy")
+stations_data <- stations_data %>% mutate(station_id = replace(station_id, station_name == "Lake Shore Dr & Diversey Pkwy", "TA1309000039"))
+stations_data %>% filter(station_name == "Central Park Ave & Douglas Blvd")
+stations_data %>% filter(station_name == "Lake Shore Dr & Diversey Pkwy")
+
+stations_data %>% filter(station_id == "330")
+stations_data %>% filter(station_name == "Keeler Ave & Roosevelt Rd")
+stations_data %>% filter(station_name == "Lincoln Ave & Addison St")
+stations_data <- stations_data %>% mutate(station_id = replace(station_id, station_name == "Lincoln Ave & Addison St", "TA1309000050"))
+stations_data %>% filter(station_name == "Keeler Ave & Roosevelt Rd")
+stations_data %>% filter(station_name == "Lincoln Ave & Addison St")
+
+stations_data %>% filter(station_id == "331")
+stations_data %>% filter(station_name == "Pulaski Rd & 21st St")
+stations_data %>% filter(station_name == "Halsted St & Clybourn Ave")
+# No alternative id for "Halsted St & Clybourn Ave"
+stations_data <- stations_data %>% mutate(station_name = replace(station_name, station_name == "Pulaski Rd & 21st St", "Halsted St & Clybourn Ave"))
+stations_data %>% filter(station_name == "Pulaski Rd & 21st St")
+stations_data %>% filter(station_name == "Halsted St & Clybourn Ave")
+
+stations_data %>% filter(station_id == "332")
+stations_data %>% filter(station_name == "Harding Ave & 26th St")
+stations_data %>% filter(station_name == "Burling St & Diversey Pkwy")
+stations_data <- stations_data %>% mutate(station_id = replace(station_id, station_name == "Burling St & Diversey Pkwy", "TA1309000036"))
+stations_data %>% filter(station_name == "Harding Ave & 26th St")
+stations_data %>% filter(station_name == "Burling St & Diversey Pkwy")
+
+stations_data %>% filter(station_id == "334")
+stations_data %>% filter(station_name == "Lawndale Ave & 30th St")
+stations_data %>% filter(station_name == "Lake Shore Dr & Belmont Ave")
+stations_data <- stations_data %>% mutate(station_id = replace(station_id, station_name == "Lake Shore Dr & Belmont Ave", "TA1309000049"))
+stations_data %>% filter(station_name == "Lawndale Ave & 30th St")
+stations_data %>% filter(station_name == "Lake Shore Dr & Belmont Ave")
+
+stations_data %>% filter(station_id == "335")
+stations_data %>% filter(station_name == "Komensky Ave & 31st St")
+stations_data %>% filter(station_name == "Calumet Ave & 35th St")
+stations_data <- stations_data %>% mutate(station_id = replace(station_id, station_name == "Calumet Ave & 35th St", "13345"))
+stations_data %>% filter(station_name == "Komensky Ave & 31st St")
+stations_data %>% filter(station_name == "Calumet Ave & 35th St")
+
+stations_data %>% filter(station_id == "351")
+stations_data %>% filter(station_name == "Mulligan Ave & Wellington Ave")
+stations_data %>% filter(station_name == "Cottage Grove Ave & 51st St")
+stations_data <- stations_data %>% mutate(station_id = replace(station_id, station_name == "Cottage Grove Ave & 51st St", "TA1309000067"))
+stations_data %>% filter(station_name == "Mulligan Ave & Wellington Ave")
+stations_data %>% filter(station_name == "Cottage Grove Ave & 51st St")
+
+stations_data %>% filter(station_id == "352")
+stations_data %>% filter(station_name == "Sayre & Diversey")
+stations_data %>% filter(station_name == "Jeffery Blvd & 67th St")
+stations_data <- stations_data %>% mutate(station_id = replace(station_id, station_name == "Jeffery Blvd & 67th St", "KA1503000030"))
+stations_data %>% filter(station_name == "Sayre & Diversey")
+stations_data %>% filter(station_name == "Jeffery Blvd & 67th St")
+
+stations_data %>% filter(station_id == "353")
+stations_data %>% filter(station_name == "Meade Ave & Diversey Ave")
+stations_data %>% filter(station_name == "Clark St & Touhy Ave")
+stations_data <- stations_data %>% mutate(station_id = replace(station_id, station_name == "Clark St & Touhy Ave", "RP-007"))
+stations_data %>% filter(station_name == "Meade Ave & Diversey Ave")
+stations_data %>% filter(station_name == "Clark St & Touhy Ave")
+
+stations_data %>% filter(station_id == "354")
+stations_data %>% filter(station_name == "Parkside Ave & Armitage Ave")
+stations_data %>% filter(station_name == "Sheridan Rd & Greenleaf Ave")
+stations_data <- stations_data %>% mutate(station_id = replace(station_id, station_name == "Sheridan Rd & Greenleaf Ave", "KA1504000159"))
+stations_data %>% filter(station_name == "Parkside Ave & Armitage Ave")
+stations_data %>% filter(station_name == "Sheridan Rd & Greenleaf Ave")
+
+stations_data %>% filter(station_id == "355")
+stations_data %>% filter(station_name == "Central Ave & Parker Ave")
+stations_data %>% filter(station_name == "South Shore Dr & 67th St")
+stations_data <- stations_data %>% mutate(station_id = replace(station_id, station_name == "South Shore Dr & 67th St", "KA1503000029"))
+stations_data %>% filter(station_name == "Central Ave & Parker Ave")
+stations_data %>% filter(station_name == "South Shore Dr & 67th St")
+
+stations_data %>% filter(station_id == "356")
+stations_data %>% filter(station_name == "Lavergne & Fullerton")
+stations_data %>% filter(station_name == "Stony Island Ave & 71st St")
+stations_data <- stations_data %>% mutate(station_id = replace(station_id, station_name == "Stony Island Ave & 71st St", "KA1503000045"))
+stations_data %>% filter(station_name == "Lavergne & Fullerton")
+stations_data %>% filter(station_name == "Stony Island Ave & 71st St")
+
+stations_data %>% filter(station_id == "359")
+stations_data %>% filter(station_name == "Kilbourn & Belden")
+stations_data %>% filter(station_name == "Larrabee St & Division St")
+stations_data <- stations_data %>% mutate(station_id = replace(station_id, station_name == "Larrabee St & Division St", "KA1504000079"))
+stations_data %>% filter(station_name == "Kilbourn & Belden")
+stations_data %>% filter(station_name == "Larrabee St & Division St")
+
+stations_data %>% filter(station_id == "364")
+stations_data %>% filter(station_name == "Homan Ave & Fillmore St")
+stations_data %>% filter(station_name == "Larrabee St & Oak St")
+stations_data <- stations_data %>% mutate(station_id = replace(station_id, station_name == "Larrabee St & Oak St", "KA1504000116"))
+stations_data %>% filter(station_name == "Homan Ave & Fillmore St")
+stations_data %>% filter(station_name == "Larrabee St & Oak St")
+
+stations_data %>% filter(station_id == "365")
+stations_data %>% filter(station_name == "Kildare Ave & 26th St")
+stations_data %>% filter(station_name == "Halsted St & North Branch St")
+stations_data <- stations_data %>% mutate(station_id = replace(station_id, station_name == "Halsted St & North Branch St", "KA1504000117"))
+stations_data %>% filter(station_name == "Kildare Ave & 26th St")
+stations_data %>% filter(station_name == "Halsted St & North Branch St")
+
+stations_data %>% filter(station_id == "366")
+stations_data %>% filter(station_name == "Spaulding Ave & 16th St")
+stations_data %>% filter(station_name == "Loomis St & Archer Ave")
+stations_data <- stations_data %>% mutate(station_id = replace(station_id, station_name == "Loomis St & Archer Ave", "KA1503000040"))
+stations_data %>% filter(station_name == "Spaulding Ave & 16th St")
+stations_data %>% filter(station_name == "Loomis St & Archer Ave")
+
+stations_data %>% filter(station_id == "368")
+stations_data %>% filter(station_name == "Tripp Ave & 31st St")
+stations_data %>% filter(station_name == "Ashland Ave & Archer Ave")
+stations_data <- stations_data %>% mutate(station_id = replace(station_id, station_name == "Ashland Ave & Archer Ave", "15442"))
+stations_data %>% filter(station_name == "Tripp Ave & 31st St")
+stations_data %>% filter(station_name == "Ashland Ave & Archer Ave")
+
+stations_data %>% filter(station_id == "393")
+stations_data %>% filter(station_name == "Oketo Ave & Addison St")
+stations_data %>% filter(station_name == "Calumet Ave & 71st St")
+stations_data <- stations_data %>% mutate(station_id = replace(station_id, station_name == "Calumet Ave & 71st St", "15599"))
+stations_data %>% filter(station_name == "Oketo Ave & Addison St")
+stations_data %>% filter(station_name == "Calumet Ave & 71st St")
+
+stations_data %>% filter(station_id == "396")
+stations_data %>% filter(station_name == "Central Ave & Roscoe St")
+stations_data %>% filter(station_name == "Yates Blvd & 75th St")
+stations_data <- stations_data %>% mutate(station_id = replace(station_id, station_name == "Yates Blvd & 75th St", "KA1503000024"))
+stations_data %>% filter(station_name == "Central Ave & Roscoe St")
+stations_data %>% filter(station_name == "Yates Blvd & 75th St")
+
+stations_data %>% filter(station_id == "398")
+stations_data %>% filter(station_name == "Long & Irving Park")
+stations_data %>% filter(station_name == "Rainbow Beach")
+stations_data <- stations_data %>% mutate(station_id = replace(station_id, station_name == "Rainbow Beach", "KA1503000049"))
+stations_data %>% filter(station_name == "Long & Irving Park")
+stations_data %>% filter(station_name == "Rainbow Beach")
+
+stations_data %>% filter(station_id == "631")
+stations_data <- stations_data %>% mutate(station_name = replace(station_name, station_name == "Malcolm X College Vaccination Site", "Malcolm X College"))
+stations_data %>% filter(station_id == "631")
+
+stations_data %>% filter(station_id == "KA1503000055")
+stations_data <- stations_data %>% mutate(station_name = replace(station_name, station_name == "Halsted & 63rd - Kennedy-King Vaccination Site", "Halsted St & 63rd St"))
+stations_data %>% filter(station_id == "KA1503000055")
+
+stations_data %>% filter(station_id == "KA1504000168")
+stations_data <- stations_data %>% mutate(station_name = replace(station_name, station_name == "Western & 28th - Velasquez Institute Vaccination Site", "Western Ave & 28th St"))
+stations_data %>% filter(station_id == "KA1503000055")
+
+stations_data %>% filter(station_id == "LF-005")
+stations_data <- stations_data %>% mutate(station_name = replace(station_name, station_name == "DuSable Lake Shore Dr & North Blvd", "Lake Shore Dr & North Blvd"))
+stations_data %>% filter(station_id == "LF-005")
+
+stations_data %>% filter(station_id == "TA1305000039")
+stations_data %>% filter(station_name == "Elston Ave & Cortland St")
+stations_data %>% filter(station_name == "Marshfield Ave & Cortland St")
+stations_data <- stations_data %>% mutate(station_id = replace(station_id, station_name == "Elston Ave & Cortland St", "TA1305000039"))
+stations_data <- stations_data %>% mutate(station_id = replace(station_id, station_name == "Marshfield Ave & Cortland St", "58"))
+stations_data %>% filter(station_name == "Elston Ave & Cortland St")
+stations_data %>% filter(station_name == "Marshfield Ave & Cortland St")
+
+stations_data %>% filter(station_id == "TA1306000029")
+stations_data <- stations_data %>% mutate(station_name = replace(station_name, station_name == "DuSable Lake Shore Dr & Ohio St", "Lake Shore Dr & Ohio St"))
+stations_data %>% filter(station_id == "TA1306000029")
+
+stations_data %>% filter(station_id == "TA1307000041")
+stations_data <- stations_data %>% mutate(station_name = replace(station_name, station_name == "DuSable Lake Shore Dr & Wellington Ave", "Lake Shore Dr & Wellington Ave"))
+stations_data %>% filter(station_id == "TA1307000041")
+
+stations_data %>% filter(station_id == "TA1309000039")
+stations_data <- stations_data %>% mutate(station_name = replace(station_name, station_name == "DuSable Lake Shore Dr & Diversey Pkwy", "Lake Shore Dr & Diversey Pkwy"))
+stations_data %>% filter(station_id == "TA1309000039")
+
+stations_data %>% filter(station_id == "TA1309000049")
+stations_data <- stations_data %>% mutate(station_name = replace(station_name, station_name == "DuSable Lake Shore Dr & Belmont Ave", "Lake Shore Dr & Belmont Ave"))
+stations_data %>% filter(station_id == "TA1309000049")
+
+stations_data %>% filter(is.na(station_id))
+stations_data %>% filter(station_name == "S Michigan Ave & E 118th St")
+stations_data <- stations_data %>% mutate(station_id = replace(station_id, station_name == "S Michigan Ave & E 118th St", "20209"))
+stations_data %>% filter(station_name == "S Michigan Ave & E 118th St")
+stations_data %>% filter(station_name == "W Armitage Ave & N Sheffield Ave")
+stations_data <- stations_data %>% mutate(station_id = replace(station_id, station_name == "W Armitage Ave & N Sheffield Ave", "20254"))
+stations_data %>% filter(station_name == "W Armitage Ave & N Sheffield Ave")
+stations_data %>% filter(station_name == "W Oakdale Ave & N Broadway")
+stations_data <- stations_data %>% mutate(station_id = replace(station_id, station_name == "W Oakdale Ave & N Broadway", "20252"))
+stations_data %>% filter(station_name == "W Oakdale Ave & N Broadway")
+stations_data %>% filter(station_name == "Dodge Ave & Main St")
+stations_data <- stations_data %>% mutate(station_id = replace(station_id, station_name == "Dodge Ave & Main St", "E011"))
+stations_data %>% filter(station_name == "Dodge Ave & Main St")
+```
+
+```{r}
+glimpse(stations_data)
+stations_data <- stations_data %>% unique()
+glimpse(stations_data)
+# Records reduced from 2,209,085 to 2,208,854 
+
+id_name <- stations_data  %>%  select(station_id, station_name) %>% arrange(station_id) %>% distinct()
+glimpse(id_name)
+id_name %>% count(station_id)
+
+ids <- id_name %>% select(station_id) %>% count(station_id)
+glimpse(ids)
+
+filter(ids, n > 1)
+
+names <- id_name %>% select(station_name) %>% count(station_name)
+glimpse(names)
+names %>% filter(n > 1)
+```
+#### Observations:
+* 1,293 unique records
+* 1,293 unique station ids
+* 740 unique station names
+
+```{r}
+id_name2 <- id_name %>%  arrange(station_name) %>% group_by(station_name) %>% slice(1) %>% ungroup()
+
+#View(id_name2)
+
+id_name2 <- id_name2 %>% mutate(id_length = nchar(station_id))
+id_name2 %>% select(id_length) %>% distinct()
+```
+
+```{r}
+id_name2 %>% filter(id_length == 3) 
+id_name2 %>% filter(id_length == 5)
+id_name2 %>% filter(id_length == 11)
+id_name2 %>% filter(id_length == 12)
+id_name2 %>% filter(id_length == 2)
+id_name2 %>% filter(id_length == 6)
+id_name2 %>% filter(id_length == 36)
+id_name2 %>% filter(id_length == 4)
+id_name2 %>% filter(id_length == 23)
+id_name2 %>% filter(id_length == 1)
+id_name2 %>% filter(id_length == 9)
+```
+
+```{r}
+id_name2 %>% filter(station_name == "Franklin St & Adams St (Temp)")
+id_name2 <- id_name2 %>% mutate(station_name = replace(station_name, station_name == "Franklin St & Adams St (Temp)", "Franklin St & Adams St"))
+id_name2 %>% filter(station_id == "286")
+stations_data <- stations_data %>% mutate(station_name = replace(station_name, station_name == "Franklin St & Adams St (Temp)", "Franklin St & Adams St"))
+
+id_name2 %>% filter(station_name == "Pulaski Rd & Eddy St (Temp)")
+id_name2 <- id_name2 %>% mutate(station_name = replace(station_name, station_name == "Pulaski Rd & Eddy St (Temp)", "Pulaski Rd & Eddy St"))
+id_name2 %>% filter(station_id == "488")
+stations_data <- stations_data %>% mutate(station_name = replace(station_name, station_name == "Pulaski Rd & Eddy St (Temp)", "Pulaski Rd & Eddy St"))
+
+id_name2 %>% filter(station_name == "Wentworth Ave & 24th St (Temp)")
+id_name2 <- id_name2 %>% mutate(station_name = replace(station_name, station_name == "Wentworth Ave & 24th St (Temp)", "Wentworth Ave & 24th St"))
+id_name2 %>% filter(station_id == "132")
+stations_data <- stations_data %>% mutate(station_name = replace(station_name, station_name == "Wentworth Ave & 24th St (Temp)", "Wentworth Ave & 24th St"))
+
+id_name2 %>% filter(station_name == "California Ave & Francis Pl (Temp)")
+id_name2 <- id_name2 %>% mutate(station_name = replace(station_name, station_name == "California Ave & Francis Pl (Temp)", "California Ave & Francis Pl"))
+id_name2 %>% filter(station_id == "13259")
+stations_data <- stations_data %>% mutate(station_name = replace(station_name, station_name == "California Ave & Francis Pl (Temp)", "California Ave & Francis Pl"))
+
+stations_data %>% filter(station_name == "Drake Ave & Fullerton Ave")
+stations_data %>% filter(station_id == "503")
+stations_data %>% filter(station_name == "Jeffery Blvd & 91st St")
+stations_data %>% filter(station_id == "704")
+
+id_name2 <- id_name2 %>% select(-id_length)
+#View(id_name2)
+# 740 stations
+```
+#### Assign corrected station ids:
+```{r}
+#joining station data 
+stations_data2 <- left_join(stations_data, id_name2, by = "station_name")
+View(stations_data2)
+
+station_data_final <- stations_data2 %>% select(station_id.y, station_name, latitude, longitude)
+glimpse(station_data_final)
+station_data_final <- rename(station_data_final, station_id = station_id.y)
+
+glimpse(station_data_final)
+
+station_data_final <- station_data_final %>% distinct()
+glimpse(station_data_final)
+# Records 2,206,745
+
+id_name3 <- station_data_final  %>%  select(station_id, station_name)  %>% distinct() %>% arrange(station_id)
+
+id_name3 %>% select(station_id) %>% distinct() %>% count()
+# 740
+id_name3 %>% select(station_name) %>% distinct() %>% count()
+# 740
+```
+#### Observations:
+* 740 unique station ids
+* 740 unique station names
+
+
+#### Save final results:
+```{r}
+glimpse(id_name3)
+View(id_name3)
+View(station_data_final)
+
+temp_coordinates <- station_data_final
+View(temp_coordinates)
+#temp_coordinates <- temp_coordinates %>% mutate(latitude_r3 = round(latitude, 3))
+#temp_coordinates <- temp_coordinates %>% mutate(longitude_r3 = round(longitude, 3))
+#View(temp_coordinates)
+#temp_coordinates <- temp_coordinates %>% select(-latitude, -longitude)
+temp_coordinates <- temp_coordinates %>% distinct()
+temp_coordinates <- temp_coordinates %>% group_by(station_name) %>% slice(1) %>% ungroup()
+
+#temp_coordinates <- rename(temp_coordinates, location_latitude = latitude_r3, location_longitude = longitude_r3)
+
+View(temp_coordinates)
+
+write_csv(temp_coordinates, "station_by_location.csv")
+write_csv(station_data_final, "stations_processed_final.csv")
+
+```

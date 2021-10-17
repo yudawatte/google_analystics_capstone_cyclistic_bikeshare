@@ -1,0 +1,279 @@
+---
+title: "Processing 2021_07_tripdata log"
+author: "Yasith Udawatte"
+date: "2021-10-12"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Cyclistic trip data 2021 July
+
+#### 1. Load libraries and set current working directory
+```{r cars}
+library(tidyverse)
+library(readr)
+library(dbplyr)
+library(filesstrings)
+library(lubridate)
+
+setwd("D:/Documents/R/Projects/Cyclistic/Cyclistic_Bike_Share/processing_data")
+input_trip_data <- "D:/Documents/R/Projects/Cyclistic/Cyclistic_Bike_Share/cleaning_data/cleaned_data/cleaned_trip_data/2021_07_tripdata.csv"
+input_station_coordinate <- "D:/Documents/R/Projects/Cyclistic/Cyclistic_Bike_Share/processing_data/processed_data/processed_stations_data/stations_processed_final.csv"
+processed_ridedata_file <- "2021_07_tripdata_processed.csv"
+processed_ridedata_path <- "D:/Documents/R/Projects/Cyclistic/Cyclistic_Bike_Share/processing_data/processed_data/processed_trip_data"
+```
+
+#### 2. Load libraries and set current working directory
+```{r}
+trip_data <- read_csv(input_trip_data)
+station_coordinates <- read.csv(input_station_coordinate)
+glimpse(trip_data)
+glimpse(station_coordinates)
+```
+
+#### 3. File start_station_name and start_station_id fields
+##### Un rounded latitude longitude match
+```{r}
+trip_data2 <- trip_data %>% select(ride_id, start_latitude, start_longitude)
+glimpse(trip_data2)
+
+trip_data2 <- left_join(trip_data2, station_coordinates, by = c("start_latitude" = "latitude", "start_longitude" = "longitude"))
+glimpse(trip_data2)
+
+trip_data2 <- trip_data2 %>% arrange(ride_id) %>% group_by(ride_id) %>% slice(1) %>% ungroup()
+glimpse(trip_data2)
+
+first_trip_data_matched <- trip_data2 %>% filter(!is.na(station_id))
+first_trip_data_matched %>% count()
+
+first_trip_data_not_matched <- trip_data2 %>% filter(is.na(station_id) | is.na(station_name))
+first_trip_data_not_matched %>% count()
+
+glimpse(first_trip_data_matched)
+first_trip_data_not_matched <- first_trip_data_not_matched %>% select(-station_id, -station_name)
+glimpse(first_trip_data_not_matched)
+```
+
+##### 4th decimal place rounded latitude longitude match
+```{r}
+remove(trip_data2)
+
+glimpse(station_coordinates)
+station_coordinates <- station_coordinates %>% mutate(latitude = round(latitude, 4))
+station_coordinates <- station_coordinates %>% mutate(longitude = round(longitude, 4))
+station_coordinates <- station_coordinates %>% unique()
+glimpse(station_coordinates)
+
+trip_data_r4 <- first_trip_data_not_matched %>% mutate(start_latitude_r4 = round(start_latitude, 4))
+trip_data_r4 <- trip_data_r4 %>% mutate(start_longitude_r4 = round(start_longitude, 4))
+glimpse(trip_data_r4)
+
+trip_data_r4 <- left_join(trip_data_r4, station_coordinates, by = c("start_latitude_r4" = "latitude", "start_longitude_r4" = "longitude"))
+glimpse(trip_data_r4)
+
+trip_data_r4 <- trip_data_r4 %>% arrange(ride_id) %>% group_by(ride_id) %>% slice(1) %>% ungroup()
+glimpse(trip_data_r4)
+
+trip_data_r4 <- trip_data_r4 %>% select(-start_latitude_r4, -start_longitude_r4)
+glimpse(trip_data_r4)
+trip_data_r4_matched <- trip_data_r4 %>% filter(!is.na(station_id))
+trip_data_r4_matched %>% count()
+
+trip_data_r4_not_matched <- trip_data_r4 %>% filter(is.na(station_id) | is.na(station_name))
+trip_data_r4_not_matched %>% count()
+
+glimpse(trip_data_r4_matched)
+trip_data_r4_not_matched <- trip_data_r4_not_matched %>% select(-station_id, -station_name)
+glimpse(trip_data_r4_not_matched)
+```
+
+##### 3rd decimal place rounded latitude longitude match
+```{r}
+remove(first_trip_data_not_matched)
+
+glimpse(station_coordinates)
+station_coordinates <- station_coordinates %>% mutate(latitude = round(latitude, 3))
+station_coordinates <- station_coordinates %>% mutate(longitude = round(longitude, 3))
+station_coordinates <- station_coordinates %>% unique()
+glimpse(station_coordinates)
+
+
+trip_data_r3 <- trip_data_r4_not_matched %>% mutate(start_latitude_r3 = round(start_latitude, 3))
+trip_data_r3 <- trip_data_r3 %>% mutate(start_longitude_r3 = round(start_longitude, 3))
+glimpse(trip_data_r3)
+
+trip_data_r3 <- left_join(trip_data_r3, station_coordinates, by = c("start_latitude_r3" = "latitude", "start_longitude_r3" = "longitude"))
+glimpse(trip_data_r3)
+
+trip_data_r3 <- trip_data_r3 %>% arrange(ride_id) %>% group_by(ride_id) %>% slice(1) %>% ungroup()
+glimpse(trip_data_r3)
+
+trip_data_r3 <- trip_data_r3 %>% select(-start_latitude_r3, -start_longitude_r3)
+glimpse(trip_data_r3)
+
+trip_data_r3_matched <- trip_data_r3 %>% filter(!is.na(station_id))
+trip_data_r3_matched %>% count()
+
+trip_data_r3_not_matched <- trip_data_r3 %>% filter(is.na(station_id) | is.na(station_name))
+trip_data_r3_not_matched %>% count()
+
+glimpse(trip_data_r3_matched)
+trip_data_r3_not_matched <- trip_data_r3_not_matched %>% select(-station_id, -station_name)
+glimpse(trip_data_r3_not_matched)
+
+```
+
+##### 2nd decimal place rounded latitude longitude match
+```{r}
+remove(trip_data_r4_not_matched)
+
+glimpse(station_coordinates)
+station_coordinates <- station_coordinates %>% mutate(latitude = round(latitude, 2))
+station_coordinates <- station_coordinates %>% mutate(longitude = round(longitude, 2))
+station_coordinates <- station_coordinates %>% unique()
+glimpse(station_coordinates)
+
+trip_data_r2 <- trip_data_r3_not_matched %>% mutate(start_latitude_r2 = round(start_latitude, 2))
+trip_data_r2 <- trip_data_r2 %>% mutate(start_longitude_r2 = round(start_longitude, 2))
+glimpse(trip_data_r2)
+
+trip_data_r2 <- left_join(trip_data_r2, station_coordinates, by = c("start_latitude_r2" = "latitude", "start_longitude_r2" = "longitude"))
+glimpse(trip_data_r2)
+
+trip_data_r2 <- trip_data_r2 %>% arrange(ride_id) %>% group_by(ride_id) %>% slice(1) %>% ungroup()
+glimpse(trip_data_r2)
+
+trip_data_r2 <- trip_data_r2 %>% select(-start_latitude_r2, -start_longitude_r2)
+glimpse(trip_data_r2)
+
+trip_data_r2_matched <- trip_data_r2 %>% filter(!is.na(station_id))
+trip_data_r2_matched %>% count()
+
+trip_data_r2_not_matched <- trip_data_r2 %>% filter(is.na(station_id) | is.na(station_name))
+trip_data_r2_not_matched %>% count()
+
+glimpse(trip_data_r2_matched)
+trip_data_r2_not_matched <- trip_data_r2_not_matched %>% select(-station_id, -station_name)
+glimpse(trip_data_r2_not_matched)
+
+```
+
+##### 1st decimal place rounded latitude longitude match
+```{r}
+remove(trip_data_r3_not_matched)
+
+glimpse(station_coordinates)
+station_coordinates <- station_coordinates %>% mutate(latitude = round(latitude, 1))
+station_coordinates <- station_coordinates %>% mutate(longitude = round(longitude, 1))
+station_coordinates <- station_coordinates %>% unique()
+glimpse(station_coordinates)
+
+trip_data_r1 <- trip_data_r2_not_matched %>% mutate(start_latitude_r1 = round(start_latitude, 1))
+trip_data_r1 <- trip_data_r1 %>% mutate(start_longitude_r1= round(start_longitude, 1))
+glimpse(trip_data_r1)
+
+trip_data_r1 <- left_join(trip_data_r1, station_coordinates, by = c("start_latitude_r1" = "latitude", "start_longitude_r1" = "longitude"))
+glimpse(trip_data_r1)
+
+trip_data_r1 <- trip_data_r1 %>% arrange(ride_id) %>% group_by(ride_id) %>% slice(1) %>% ungroup()
+glimpse(trip_data_r1)
+
+trip_data_r1 <- trip_data_r1 %>% select(-start_latitude_r1, -start_longitude_r1)
+glimpse(trip_data_r1)
+
+trip_data_r1_matched <- trip_data_r1 %>% filter(!is.na(station_id))
+trip_data_r1_matched %>% count()
+
+trip_data_r1_not_matched <- trip_data_r1 %>% filter(is.na(station_id) | is.na(station_name))
+trip_data_r1_not_matched %>% count()
+
+glimpse(trip_data_r1_matched)
+trip_data_r1_not_matched <- trip_data_r1_not_matched %>% select(-station_id, -station_name)
+glimpse(trip_data_r1_not_matched)
+
+```
+
+##### 0th decimal place rounded latitude longitude match
+```{r}
+remove(trip_data_r2_not_matched)
+
+glimpse(station_coordinates)
+station_coordinates <- station_coordinates %>% mutate(latitude = round(latitude, 0))
+station_coordinates <- station_coordinates %>% mutate(longitude = round(longitude, 0))
+station_coordinates <- station_coordinates %>% unique()
+glimpse(station_coordinates)
+
+trip_data_r0 <- trip_data_r1_not_matched %>% mutate(start_latitude_r0 = round(start_latitude, 0))
+trip_data_r0 <- trip_data_r0 %>% mutate(start_longitude_r0= round(start_longitude, 0))
+glimpse(trip_data_r0)
+
+trip_data_r0 <- left_join(trip_data_r0, station_coordinates, by = c("start_latitude_r0" = "latitude", "start_longitude_r0" = "longitude"))
+glimpse(trip_data_r0)
+
+trip_data_r0 <- trip_data_r0 %>% arrange(ride_id) %>% group_by(ride_id) %>% slice(1) %>% ungroup()
+glimpse(trip_data_r0)
+
+trip_data_r0 <- trip_data_r0 %>% select(-start_latitude_r0, -start_longitude_r0)
+glimpse(trip_data_r0)
+
+trip_data_r0_matched <- trip_data_r0 %>% filter(!is.na(station_id))
+trip_data_r0_matched %>% count()
+
+```
+
+```{r}
+matched_trip_data <- first_trip_data_matched
+matched_trip_data <- rbind(matched_trip_data, trip_data_r4_matched)
+matched_trip_data <- rbind(matched_trip_data, trip_data_r3_matched)
+matched_trip_data <- rbind(matched_trip_data, trip_data_r2_matched)
+matched_trip_data <- rbind(matched_trip_data, trip_data_r1_matched)
+matched_trip_data <- rbind(matched_trip_data, trip_data_r0_matched)
+
+glimpse(matched_trip_data)
+
+matched_trip_data %>% filter(is.na(station_id) | is.na(station_name))
+
+trip_data <- left_join(trip_data, matched_trip_data, by = "ride_id")
+
+glimpse(trip_data)
+
+```
+
+#### 4. Organize trip_data csv
+```{r}
+# final arrangement
+trip_data_final <- trip_data %>% select(
+  ride_id,
+  rideable_type,
+  user_type,
+  started_at,
+  duration_in_mins,
+  station_name
+)
+
+glimpse(trip_data_final)
+
+trip_data_final <- mutate(trip_data_final, started_date = format(as.POSIXct(started_at), format = "%Y-%m-%d"))
+trip_data_final <-  mutate(trip_data_final, started_month_no = month(ymd(started_date)))
+trip_data_final <-  mutate(trip_data_final, started_month = month(ymd(started_date), label = TRUE, abbr = FALSE))
+trip_data_final <- mutate(trip_data_final, started_week_day_no = wday(started_date))
+trip_data_final <- mutate(trip_data_final, started_week_day = weekdays(as.Date(started_date)))
+trip_data_final <-  mutate(trip_data_final, started_hour = format(as.POSIXct(started_at), format = "%H"))
+
+glimpse(trip_data_final)
+
+station_by_location = read.csv("D:/Documents/R/Projects/Cyclistic/Cyclistic_Bike_Share/processing_data/processed_data/processed_stations_data/station_by_location.csv")
+
+glimpse(station_by_location)
+
+trip_data_final <- left_join(trip_data_final, station_by_location, by = "station_name")
+
+glimpse(trip_data_final)
+
+write_csv(trip_data_final, processed_ridedata_file)
+file.move(processed_ridedata_file, processed_ridedata_path , overwrite = TRUE)
+
+```

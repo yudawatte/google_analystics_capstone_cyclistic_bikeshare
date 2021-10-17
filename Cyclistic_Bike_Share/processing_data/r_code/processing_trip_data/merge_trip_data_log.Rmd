@@ -1,0 +1,143 @@
+---
+title: "merge_trip_data_log"
+author: "Yasith Udawatte"
+date: "2021-10-12"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Cyclistic trip data
+
+#### 1. Load libraries and set current working directory
+```{r cars}
+library(tidyverse)
+library(readr)
+library(dbplyr)
+library(filesstrings)
+
+setwd("D:/Documents/R/Projects/Cyclistic/Cyclistic_Bike_Share/processing_data/processed_data/processed_trip_data")
+processed_tripdata_file <- "cyclistic_tripdata_final.csv"
+processed_data_path <- "D:/Documents/R/Projects/Cyclistic/Cyclistic_Bike_Share/processing_data/processed_data/processed_trip_data"
+```
+
+#### 2. Merge 2021 August to 2020 September trip data
+```{r}
+# 2021 August
+input_file <- read_csv("2021_08_tripdata_processed.csv")
+trip_data <- input_file
+glimpse(input_file)
+
+# 2021 July
+remove(input_file)
+input_file <- read_csv("2021_07_tripdata_processed.csv")
+trip_data <- rbind(trip_data, input_file)
+
+#trip_data <- trip_data %>% unique()
+glimpse(trip_data)
+
+# 2021 June
+remove(input_file)
+input_file <- read_csv("2021_06_tripdata_processed.csv")
+glimpse(input_file)
+trip_data <- rbind(trip_data, input_file)
+
+#trip_data <- trip_data %>% unique()
+glimpse(trip_data)
+
+# 2021 May
+remove(input_file)
+input_file <- read_csv("2021_05_tripdata_processed.csv")
+glimpse(input_file)
+trip_data <- rbind(trip_data, input_file)
+
+#trip_data <- trip_data %>% unique()
+glimpse(trip_data)
+
+# 2021 April
+remove(input_file)
+input_file <- read_csv("2021_04_tripdata_processed.csv")
+glimpse(input_file)
+trip_data <- rbind(trip_data, input_file)
+
+#trip_data <- trip_data %>% unique()
+glimpse(trip_data)
+
+# 2021 March
+remove(input_file)
+input_file <- read_csv("2021_03_tripdata_processed.csv")
+glimpse(input_file)
+trip_data <- rbind(trip_data, input_file)
+
+#trip_data <- trip_data %>% unique()
+glimpse(trip_data)
+
+# 2021 February
+remove(input_file)
+input_file <- read_csv("2021_02_tripdata_processed.csv")
+glimpse(input_file)
+trip_data <- rbind(trip_data, input_file)
+
+#trip_data <- trip_data %>% unique()
+glimpse(trip_data)
+
+# 2021 January
+remove(input_file)
+input_file <- read_csv("2021_01_tripdata_processed.csv")
+glimpse(input_file)
+trip_data <- rbind(trip_data, input_file)
+
+#trip_data <- trip_data %>% unique()
+glimpse(trip_data)
+
+# 2020 December
+remove(input_file)
+input_file <- read_csv("2020_12_tripdata_processed.csv")
+glimpse(input_file)
+trip_data <- rbind(trip_data, input_file)
+
+#trip_data <- trip_data %>% unique()
+glimpse(trip_data)
+
+# 2020 November
+remove(input_file)
+input_file <- read_csv("2020_11_tripdata_processed.csv")
+glimpse(input_file)
+trip_data <- rbind(trip_data, input_file)
+
+#trip_data <- trip_data %>% unique()
+glimpse(trip_data)
+
+# 2020 October
+remove(input_file)
+input_file <- read_csv("2020_10_tripdata_processed.csv")
+glimpse(input_file)
+trip_data <- rbind(trip_data, input_file)
+
+#trip_data <- trip_data %>% unique()
+glimpse(trip_data)
+
+# 2020 September
+remove(input_file)
+input_file <- read_csv("2020_09_tripdata_processed.csv")
+glimpse(input_file)
+trip_data <- rbind(trip_data, input_file)
+
+#trip_data <- trip_data %>% unique()
+trip_data <- trip_data %>% distinct()
+glimpse(trip_data)
+
+```
+
+#### 3. Quick check total record count
+```{r}
+trip_data %>% count()
+```
+#### Save final results:
+```{r}
+write_csv(trip_data, processed_tripdata_file)
+
+```
+
